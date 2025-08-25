@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitinside"
+version = "0.1.0"
+description = "Your project description here"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    # Add your project dependencies here
+    # Example: "requests>=2.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Development dependencies
+    "pytest>=6.0",
+    "black",
+    "isort",
+    "mypy",
+    "flake8",
+]
+
+[project.urls]
+Homepage = "https://github.com/username/gitinside"
+Bug_Tracker = "https://github.com/username/gitinside/issues"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+line_length = 88
+
+[project.scripts]
+# Uncomment and modify if you want to create command-line scripts
+# gitinside = "gitinside.cli:main"
