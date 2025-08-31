@@ -28,7 +28,7 @@ def compose_plan(
     if deps.python and deps.python.strip():
         bounds = [b.strip() for b in deps.python.split(",") if b.strip()]
         try:
-            # Handle version specifiers
+            # First look for exact version specifiers (== or =)
             for bound in bounds:
                 if "==" in bound:
                     version = bound.split("==", 1)[1].strip()
@@ -38,10 +38,25 @@ def compose_plan(
                     version = bound.split("=", 1)[1].strip()
                     python_tag = f"{version}-slim"
                     break
-            else:  # No break, no explicit version found
-                diagnostics.append(f"Could not parse Python version from: {deps.python}")
-        except IndexError:
-            diagnostics.append(f"Invalid Python version specifier: {deps.python}")
+            else:
+                # No exact version found, look for lower bounds (>=)
+                for bound in bounds:
+                    if ">=" in bound:
+                        version = bound.split(">=", 1)[1].strip()
+                        python_tag = f"{version}-slim"
+                        break
+                else:
+                    # No lower bound, check for simple version number
+                    for bound in bounds:
+                        if bound[0].isdigit():
+                            version = bound.split(None, 1)[0].strip()
+                            python_tag = f"{version}-slim"
+                            break
+                    else:
+                        diagnostics.append(f"Could not parse Python version from: {deps.python}")
+        except (IndexError, ValueError) as e:
+            diagnostics.append(f"Invalid Python version specifier: {deps.python} - {str(e)}")
+            python_tag = default_python_tag
 
     if deps.kind == "pyproject":
         dockerfile_template = "python-pyproject-pytest"
