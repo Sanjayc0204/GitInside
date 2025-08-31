@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 
 @dataclass(frozen=True)
 class DepsInfo:
-    kind: str                                                               # "pyproject" | "poetry" | "venv" | "conda"
+    kind: str                                                               # "pyproject" | "requirements"
     path: str                                                               # relative path to pyproject.toml, poetry.lock, venv, or conda environment
     python: str                                                             # python version, e.g. "3.12"
     constraints: Optional[str] = None                                       # constraints
@@ -21,13 +21,23 @@ class TestsInfo:
 
 @dataclass(frozen=True)
 class Plan:
-    runner: str                                                             # "pytest" | "tox" | "nosetests"
+    runner: str
     deps: DepsInfo
     tests: TestsInfo
-    env: Dict[str, str]                                                     # environment variables
-    apt: List[str]                                                          # from allowlist map
-    junit_xml: str = "/app/test-report.xml"                                 # path to junit xml
-    pytest_args: str = "-q --maxfail=1 --disable-warnings -duration=10"     # pytest args
+    env_allowed: List[str]
+    python_tag: str
+    work_dir: str
+    dockerfile_template: str
+    artifacts: Dict[str, str]
+    limits: Dict[str, str]
+    network_policy: str
+    tests_mode: str
+    apt: List[str]
+    diagnostics: List[str]
+    junit_xml: str = "/results/test-report.xml"
+    pytest_args: str = "-q --maxfail=1 --disable-warnings"
+    schema_version: int = 1
+    plan_hash: str = ""
 
 
 
