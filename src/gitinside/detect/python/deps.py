@@ -62,7 +62,7 @@ def detect_deps(root: Path, cfg: DetectorConfig) -> Tuple[DepsInfo, List[str]]:
     if reqfile:
         diags.append(f"Using requirements file: {reqfile}")
         return (DepsInfo(
-            kind = "requirements",
+            kind = "python-requirements-pytest",
             path = reqfile.name,
             python = cfg.default_python,
         ), diags)
@@ -70,7 +70,7 @@ def detect_deps(root: Path, cfg: DetectorConfig) -> Tuple[DepsInfo, List[str]]:
     diags.append("No pyproject.toml or requirements file found" + cfg.default_python)
 
     return (DepsInfo(
-        kind = "requirements",
+        kind = "python-requirements-pytest",
         path = "requirements.txt",
         python = cfg.default_python,
     ), diags)
