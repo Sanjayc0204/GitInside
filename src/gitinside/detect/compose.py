@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Literal
 import json, hashlib
 
-from gitinside.detect.plan import DepsInfo, Plan, TestsInfo
+from .plan import DepsInfo, Plan, TestsInfo
 
 
 def _stable_hash(d: dict) -> str:
