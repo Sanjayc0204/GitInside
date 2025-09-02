@@ -8,13 +8,18 @@ Input (Repo URL)
 
 from ntpath import exists
 from operator import truediv
+import os
+from pathlib import Path
 from tkinter import N
-from gitinside.detect.compose import compose_plan
-from gitinside.detect.config import DetectorConfig
-from gitinside.detect.python.deps import detect_deps
-from gitinside.detect.python.tests import detect_tests
-from gitinside.fetcher.github import GithubFetcher
-from gitinside.renderer.compose import render_dockerfile
+from typing import Optional, Dict
+
+from docker.errors import APIError
+from .detect.compose import compose_plan
+from .detect.config import DetectorConfig
+from .detect.python.deps import detect_deps
+from .detect.python.tests import detect_tests
+from .fetcher.github import GithubFetcher
+from .renderer.compose import render_dockerfile
 import docker
 import sys
 
@@ -63,36 +68,46 @@ class Runner:
     
     def _run_container(
         self,
-        image:str,
-        command: Optional[str]= None,
+        image: str,
+        command: Optional[str] = None,
         volumes: Optional[Dict[str, Dict[str, str]]] = None,
         environment: Optional[Dict[str, str]] = None,
+        timeout: int = None,
         detach: bool = False,
         remove: bool = True,
         **kwargs):
         client = docker.from_env()
+        container = None
 
         try:
-            container = client.containers.run(
+            container = client.containers.create(
                 image=image,
-                command=command,
-                volumes=volumes,
-                environment=environment,
-                detach=detach,
-                remove=remove,
-                **kwargs
+            volumes=volumes or {},
+            environment=environment or {},
+            detach=True,
             )
-            if detach:
-                return container.id
-            else:
-                return container.decode('utf-8') if container else ""
-        except docker.errors.APIError as e:
-            print(f"Failed to run container: {e}")
-        raise
 
+            container.start()
 
+            result = container.wait(timeout=timeout)
+
+            exit_code = result.get("StatusCode", 1 if isinstance(result, int) else 1)
+
+            # 4) Get combined logs (stdout + stderr)
+            logs = container.logs(stdout=True, stderr=True)
+            logs_text = logs.decode("utf-8", errors="replace")
+
+            return exit_code, logs_text
+        except APIError as e:
+            raise
+        finally:
+            if container is not None:
+                try:
+                    container.remove(force=True)
+                except Exception:
+                    pass
     
-    def run(self, token: Optional[str], owner: str, repo: str, ref:Optional[str]):
+    def run(self, owner: str, repo: str, token: Optional[str] = None, ref:Optional[str] = "main"):
         """
         Main execution flow:
         1. Fetch repository
@@ -106,58 +121,74 @@ class Runner:
         if token:
             fetcher = GithubFetcher(token=token)
         
-        if not _is_docker_running():
+        if not self._is_docker_running():
             print("Docker daemon not running. Try again with the daemon running.", file=sys.stderr)
             sys.exit(1)
         
         
         try:
+            print("Fetching repo...")
             # 1. Fetch Github repo
             self.temp_dir = fetcher.fetch(owner, repo, ref)
+            print("Fetched!")
 
             # 2. Detect project type and requirements
-            deps_info = detect_deps(self.temp_dir, cfg=DetectorConfig())
-            tests_info = detect_tests(self.temp_dir, cfg=DetectorConfig())
+            print("Detecting dependencies...")
+            deps_info, diags = detect_deps(self.temp_dir, cfg=DetectorConfig())
+            print('\n'.join(map(str, diags)))
+            tests_info, diags = detect_tests(self.temp_dir, cfg=DetectorConfig())
+            print('\n'.join(map(str, diags)))
             plan = compose_plan(self.temp_dir, deps_info, tests_info)
+            print("Detected!")
 
             # 3. Generate dockerfile
+            print("Generating dockerfile...")
             render_dockerfile(plan, self.temp_dir)
+            print("Generated!")
 
             # 4. Build docker image
-            image_id = _docker_build(self.temp_dir, f"{owner}+{repo}:{ref}")
+            print("Building docker image...")
+            image_id = self._docker_build(str(self.temp_dir), f"{owner}-{repo}:{ref}".lower())
+            print("Docker image built!")
 
-            with tempfile.TemporaryDirectory() as temp_dir:
-                volumes = {
-                    os.path.abspath(temp_dir): {
-                        'bind': '/results',
-                        'mode': 'rw'
-                    }
-                }
-                environment = {
-                    "PYTHONUNBUFFERED": "1",
-                    "OUTPUT_DIR": "/results"
-                }
+            # 5. Run docker image
+            print("Running docker image...")
+            print("Running docker image...")
 
-                # Run container and capture output
-                logs = self._run_container(
-                    image=image_id,
-                    volumes=volumes,
-                    environment=environment
-                )
-                print(logs)
+            base = Path.cwd()
+            host_results = base / ".gitinside" / "results" / f"{owner}.{repo}"
+            host_results.mkdir(parents=True, exist_ok=True)
 
-                results_dir = Path(temp_dir)
-                report_files = list(results_dir.glob("*.xml")) + list(results_dir.glob("*.json"))
-                
-                if not report_files:
-                    print("No report files found in container output")
-                else:
-                    print(f"Found {len(report_files)} report files")
-                    for report in report_files:
-                        print(f"- {report.name}")
+            volumes = {
+                str(host_results.resolve()): {"bind": "/results", "mode": "rw"}
+            }
+            environment = {
+                "PYTHONUNBUFFERED": "1",
+                "PYTHONPATH": "/app",
+                "OUTPUT_DIR": "/results"
+            }
+
+            logs = self._run_container(
+                image=image_id,
+                volumes=volumes,
+                environment=environment
+            )
+            print(logs)
+
+            results_dir = host_results
+            report_files = list(results_dir.rglob("*.xml")) + list(results_dir.rglob("*.json"))
+
+            if not report_files:
+                print(f"No report files found in {results_dir}")
+            else:
+                print(f"Found {len(report_files)} report files")
+                for report in report_files:
+                    print(f"- {report.relative_to(results_dir)}")
+
+            print("Finished running!")
+
 
 
         except Exception as e:
             print(f"Error: {e}")
             raise
-
