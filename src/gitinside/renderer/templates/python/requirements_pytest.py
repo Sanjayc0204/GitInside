@@ -1,5 +1,7 @@
 
+from ....detect.plan import Plan
 
+print("rendering requirements plan")
 def render(plan: Plan) -> str:
     base_image = f"python:{plan.python_tag}"
 
