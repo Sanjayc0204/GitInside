@@ -9,19 +9,19 @@ Input (Repo URL)
 from ntpath import exists
 from operator import truediv
 import os
+import sys
 from pathlib import Path
-from tkinter import N
-from typing import Optional, Dict
+from typing import Dict, Optional
 
+import docker
 from docker.errors import APIError
+
 from .detect.compose import compose_plan
 from .detect.config import DetectorConfig
 from .detect.python.deps import detect_deps
 from .detect.python.tests import detect_tests
 from .fetcher.github import GithubFetcher
 from .renderer.compose import render_dockerfile
-import docker
-import sys
 
 
 class Runner:
@@ -107,7 +107,14 @@ class Runner:
                 except Exception:
                     pass
     
-    def run(self, owner: str, repo: str, token: Optional[str] = None, ref:Optional[str] = "main"):
+    def run(
+        self,
+        owner: str,
+        repo: str,
+        token: Optional[str] = None,
+        ref: str = "main",
+        output_dir: Optional[Path] = None,
+    ) -> None:
         """
         Main execution flow:
         1. Fetch repository
@@ -116,15 +123,24 @@ class Runner:
         4. Build image
         5. Run image
         6. Clean up if needed
+
+        Args:
+            owner: GitHub repository owner (username or organization)
+            repo: GitHub repository name
+            token: GitHub access token (optional, for private repositories)
+            ref: Git reference (branch, tag, or commit hash)
+            output_dir: Directory to store test results
         """
-        fetcher = GithubFetcher()
-        if token:
-            fetcher = GithubFetcher(token=token)
+        # Set up output directory
+        if output_dir is None:
+            output_dir = Path.cwd() / ".gitinside" / "results" / f"{owner}.{repo}"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        fetcher = GithubFetcher(token=token) if token else GithubFetcher()
         
         if not self._is_docker_running():
             print("Docker daemon not running. Try again with the daemon running.", file=sys.stderr)
             sys.exit(1)
-        
         
         try:
             print("Fetching repo...")

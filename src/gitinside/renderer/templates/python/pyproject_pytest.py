@@ -6,8 +6,7 @@ def render(plan: Plan) -> str:
 
     lines = [
         f"FROM {base_image}",
-        "ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1",
-        "ENV PYTHONPATH=/app"
+        "ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app",
         "WORKDIR /app",
         "COPY . .",
         "RUN python -m pip install -U pip && \\",

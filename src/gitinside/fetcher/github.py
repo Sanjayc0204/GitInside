@@ -3,6 +3,15 @@ from pathlib import Path
 from .base import BaseFetcher
 import os, tarfile, tempfile, requests, shutil
 
+"""
+1. You can make temp files using tempfile
+2. The github tarball api gives a redirect link. Python requests allows redirects by default
+2.a You can stream the contents of the tar link into a certain path by using shutil and downloading it in 1MB chunks
+3. You need to be vary of "zip-slip" by malicious repos by making sure every file and directory in the tar has a valid directory name that starts with the destination folder
+4. Symlinks can also be malicious
+5. Github tarballs have a top-level wrapper folder. You can flatten it by bringing its contents up to the build folder and deletingn the wrapper folder
+"""
+
 class GithubFetcher(BaseFetcher):
     def __init__(self, token: Optional[str] = None):
         self.token = token
@@ -15,7 +24,6 @@ class GithubFetcher(BaseFetcher):
             target = os.path.realpath(os.path.join(dest, m.name))
             if not (target == root or target.startswith(root + os.sep)):
                 raise RuntimeError(f"Unsafe path in tar: {m.name}")
-            # Optional: block symlinks entirely
             if m.issym() or m.islnk():
                 raise RuntimeError(f"Symlink not allowed in tar: {m.name}")
         tf.extractall(dest)

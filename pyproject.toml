@@ -5,37 +5,50 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gitinside"
 version = "0.1.0"
-description = "Your project description here"
+description = "Run tests in isolated Docker containers with automatic environment detection"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Sanjay Choudhary", email = "sanjayc0204@gmail.com"},
 ]
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Build Tools",
 ]
 
 dependencies = [
-    # Add your project dependencies here
-    # Example: "requests>=2.25.0",
+    "docker>=6.0.0",
+    "requests>=2.28.0",
+    "tomli>=2.0.0; python_version < '3.11'",
+    "typing-extensions>=4.0.0; python_version < '3.10'",
 ]
 
 [project.optional-dependencies]
 dev = [
-    # Development dependencies
-    "pytest>=6.0",
-    "black",
-    "isort",
-    "mypy",
-    "flake8",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "flake8>=6.0.0",
+    "types-requests>=2.28.0",
 ]
 
+[project.scripts]
+gitinside = "gitinside.main:main"
+
 [project.urls]
-Homepage = "https://github.com/username/gitinside"
-Bug_Tracker = "https://github.com/username/gitinside/issues"
+Homepage = "https://github.com/Sanjayc0204/GitInside"
+Bug_Tracker = "https://github.com/Sanjayc0204/GitInside/issues"
+Documentation = "https://github.com/Sanjayc0204/GitInside#readme"
 
 [tool.black]
 line-length = 88
@@ -47,7 +60,3 @@ profile = "black"
 multi_line_output = 3
 include_trailing_comma = true
 line_length = 88
-
-[project.scripts]
-# Uncomment and modify if you want to create command-line scripts
-# gitinside = "gitinside.cli:main"
