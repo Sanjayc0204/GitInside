@@ -1,0 +1,82 @@
+FROM python:3.11-slim
+
+# Set Chrome version and download URL
+ENV CHROME_VERSION="114.0.5735.198-1"
+ENV CHROMEDRIVER_VERSION="114.0.5735.90"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    unzip \
+    xvfb \
+    # Chrome dependencies
+    libnss3 \
+    libxss1 \
+    libasound2 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxi6 \
+    libxtst6 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdrm2 \
+    libgbm1 \
+    libxkbcommon0 \
+    libxrandr2 \
+    # Additional dependencies
+    libxshmfence1 \
+    libxcb-dri3-0 \
+    libxcb-randr0 \
+    libxcb-xfixes0 \
+    libxcb1 \
+    libxext6 \
+    libx11-6 \
+    # Font dependencies
+    fonts-liberation \
+    libappindicator3-1 \
+    xdg-utils \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable=$CHROME_VERSION \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm /etc/apt/sources.list.d/google-chrome.list
+
+# Install ChromeDriver
+RUN wget -q https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip \
+    && unzip chromedriver_linux64.zip \
+    && mv chromedriver /usr/local/bin/chromedriver \
+    && chmod +x /usr/local/bin/chromedriver \
+    && rm chromedriver_linux64.zip
+
+# Set up the working directory
+WORKDIR /app
+
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the wrapper script
+COPY run_selenium.py .
+
+# Copy the rest of the application
+COPY . .
+
+# Set display port to avoid crash
+ENV DISPLAY=:99
+
+# Start Xvfb in the background
+RUN Xvfb :99 -screen 0 1024x768x16 &
+
+# Set the entry point
+ENTRYPOINT ["python"]
