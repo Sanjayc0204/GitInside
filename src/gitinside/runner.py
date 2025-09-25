@@ -95,10 +95,21 @@ class Runner:
 
             exit_code = result.get("StatusCode", 1 if isinstance(result, int) else 1)
 
-            # 4) Get combined logs (stdout + stderr)
-            logs = container.logs(stdout=True, stderr=True)
-            logs_text = logs.decode("utf-8", errors="replace")
-
+            # Stream logs in real-time and collect them
+            logs = []
+            
+            # Stream logs line by line
+            for line in container.logs(stdout=True, stderr=True, stream=True, follow=True, tail=1000):
+                line = line.decode('utf-8', errors='replace').rstrip()
+                logs.append(line)
+            
+            # Join logs with newlines for the return value
+            logs_text = "\n [SHIM]".join(logs)
+            
+            # Print all logs at once to avoid interleaving
+            if logs_text:
+                print(logs_text)
+                
             return exit_code, logs_text
         except APIError as e:
             raise
@@ -116,6 +127,7 @@ class Runner:
         token: Optional[str] = None,
         ref: str = "main",
         output_dir: Optional[Path] = None,
+        profile: str = "default",
     ) -> None:
         """
         Main execution flow:
@@ -168,10 +180,10 @@ class Runner:
             repo_config = self.temp_dir / ".gitinsiderc.yaml"
             
             if root_config.exists():
-                print(f"Using project configuration from {root_config}")
+                print(f"Using project configuration from {root_config} with profile '{profile}'")
                 config_path = root_config
             elif repo_config.exists():
-                print("Using repository configuration")
+                print(f"Using repository configuration {repo_config} with profile '{profile}'")
                 config_path = repo_config
             else:
                 print("No configuration found, using default shim")
@@ -184,10 +196,10 @@ class Runner:
             # Generate shim from the found configuration
             print("Generating shim script...")
             try:
-                generate_shim(str(config_path), str(shim_path))
+                generate_shim(str(config_path), str(shim_path), profile)
                 # Make shim executable
                 shim_path.chmod(0o755)
-                print("Shim script generated!")
+                print(f"Shim script generated using profile '{profile}' -> {shim_path}")
             except Exception as e:
                 print(f"Error: Failed to generate shim script: {e}")
                 # Fall back to default shim on error
@@ -207,7 +219,6 @@ class Runner:
 
             # 5. Run docker image
             print("Running docker image...")
-            print("Running docker image...")
 
             base = Path.cwd()
             host_results = base / ".gitinside" / "results" / f"{owner}.{repo}"
@@ -222,12 +233,11 @@ class Runner:
                 "OUTPUT_DIR": "/results"
             }
 
-            logs = self._run_container(
+            exit_code, logs = self._run_container(
                 image=image_id,
                 volumes=volumes,
                 environment=environment
             )
-            print(logs)
 
             results_dir = host_results
             report_files = list(results_dir.rglob("*.xml")) + list(results_dir.rglob("*.json"))
