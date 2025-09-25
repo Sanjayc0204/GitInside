@@ -1,0 +1,50 @@
+# GitInside Configuration File
+# Place this file in the root of your repository
+
+version: 1
+
+# Default profile will be used if no profile is specified
+profiles:
+  # Profile name (can be anything)
+  default:
+    description: "Default execution profile"
+    
+    # Working directory for the execution
+    working_dir: "."
+    
+    # Environment variables to set
+    environment:
+      PYTHONPATH: "${PWD}/src"
+    
+    # Commands to run before the main execution
+    pre_execute:
+      - command: "pip install -r requirements.txt"
+        cwd: "."  # Optional working directory for this command
+    
+    # Main execution configuration
+    execute:
+      command: "python main.py"  # Command to execute
+      args: []                   # Command line arguments
+      cwd: "src"                 # Working directory for execution
+      timeout: 300               # Timeout in seconds
+    
+    # Commands to run after the main execution
+    post_execute:
+      - command: "echo 'Execution completed'"
+    
+    # Artifacts to collect after execution
+    artifacts:
+      - path: "results/**/*"     # Source path (supports glob patterns)
+        target: "/results"       # Target directory in the container
+      - path: "logs/*.log"
+        target: "/results/logs"
+
+  # Example test profile
+  test:
+    description: "Run tests"
+    execute:
+      command: "pytest"
+      args: [".", "--junitxml=/results/report.xml", "--json-report", "--json-report-file=/results/report.json"]
+    artifacts:
+      - path: "test-results/*"
+        target: "/results"

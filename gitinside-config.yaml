@@ -1,0 +1,15 @@
+version: 1
+profiles:
+  run:
+    description: "Run main.py and collect output files"
+    working_dir: "src"  # Change to the src directory before running
+    environment:
+      PYTHONPATH: "${PWD}/src"  # Add src to Python path
+    execute:
+      command: "python"
+      args: ["main.py"]  # Run main.py
+    artifacts:
+      - path: "/data/**/*"  # Copy everything from /data
+        target: "/results"  # To the results directory
+      - path: "output/*"    # Also capture any output from the src directory
+        target: "/results"

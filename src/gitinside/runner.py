@@ -10,6 +10,7 @@ from ntpath import exists
 from operator import truediv
 import os
 import sys
+import shutil
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -22,6 +23,7 @@ from .detect.python.deps import detect_deps
 from .detect.python.tests import detect_tests
 from .fetcher.github import GithubFetcher
 from .renderer.compose import render_dockerfile
+from .shim_generator import generate_shim
 
 
 class Runner:
@@ -157,7 +159,43 @@ class Runner:
             plan = compose_plan(self.temp_dir, deps_info, tests_info)
             print("Detected!")
 
-            # 3. Generate dockerfile
+            # 3. Generate shim script using configuration
+            shim_path = self.temp_dir / "shim.py"
+            
+            # First check for a config file in the project root
+            project_root = Path(__file__).parent.parent.parent  # Go up from src/gitinside/runner.py to project root
+            root_config = project_root / "gitinside-config.yaml"
+            repo_config = self.temp_dir / ".gitinsiderc.yaml"
+            
+            if root_config.exists():
+                print(f"Using project configuration from {root_config}")
+                config_path = root_config
+            elif repo_config.exists():
+                print("Using repository configuration")
+                config_path = repo_config
+            else:
+                print("No configuration found, using default shim")
+                # Copy default shim if no config exists
+                default_shim = Path(__file__).parent / "renderer" / "templates" / "python" / "shim" / "shim.py"
+                shutil.copy2(default_shim, shim_path)
+                shim_path.chmod(0o755)
+                return
+                
+            # Generate shim from the found configuration
+            print("Generating shim script...")
+            try:
+                generate_shim(str(config_path), str(shim_path))
+                # Make shim executable
+                shim_path.chmod(0o755)
+                print("Shim script generated!")
+            except Exception as e:
+                print(f"Error: Failed to generate shim script: {e}")
+                # Fall back to default shim on error
+                default_shim = Path(__file__).parent / "renderer" / "templates" / "python" / "shim" / "shim.py"
+                shutil.copy2(default_shim, shim_path)
+                shim_path.chmod(0o755)
+
+            # 4. Generate dockerfile
             print("Generating dockerfile...")
             render_dockerfile(plan, self.temp_dir)
             print("Generated!")
