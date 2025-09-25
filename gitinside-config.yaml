@@ -1,15 +1,20 @@
 version: 1
 profiles:
-  run:
-    description: "Run main.py and collect output files"
-    working_dir: "src"  # Change to the src directory before running
+  default:
+    description: "Run Python scraper and collect output files"
+    docker:
+      template: "python/Dockerfile.chromedriver"
     environment:
-      PYTHONPATH: "${PWD}/src"  # Add src to Python path
+      PYTHONPATH: "/app/src"
+    pre_run:
+      - command: "find"
+        args: [".", "-name", ".venv", "-type", "d", "-exec", "rm", "-rf", "{}", "+"]
     execute:
       command: "python"
-      args: ["main.py"]  # Run main.py
+      args: ["scraper.py"]
+      cwd: "src"
     artifacts:
-      - path: "/data/**/*"  # Copy everything from /data
-        target: "/results"  # To the results directory
-      - path: "output/*"    # Also capture any output from the src directory
+      - path: "/app/src/*/data/*.json"
+        target: "/results"
+      - path: "*.log"
         target: "/results"
