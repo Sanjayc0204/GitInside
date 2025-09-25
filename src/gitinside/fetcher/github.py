@@ -18,15 +18,25 @@ class GithubFetcher(BaseFetcher):
 
     @staticmethod
     def safe_extract(tf: tarfile.TarFile, dest: str) -> None:
-        """Extract safely (prevent path traversal)."""
+        """Extract safely (prevent path traversal and skip symlinks)."""
         root = os.path.realpath(dest)
-        for m in tf.getmembers():
-            target = os.path.realpath(os.path.join(dest, m.name))
+        safe_members = []
+        
+        for member in tf.getmembers():
+            # Skip symlinks
+            if member.issym() or member.islnk():
+                print(f"Skipping symlink: {member.name}")
+                continue
+                
+            # Check for path traversal
+            target = os.path.realpath(os.path.join(dest, member.name))
             if not (target == root or target.startswith(root + os.sep)):
-                raise RuntimeError(f"Unsafe path in tar: {m.name}")
-            if m.issym() or m.islnk():
-                raise RuntimeError(f"Symlink not allowed in tar: {m.name}")
-        tf.extractall(dest)
+                raise RuntimeError(f"Unsafe path in tar: {member.name}")
+                
+            safe_members.append(member)
+            
+        # Only extract safe members
+        tf.extractall(dest, members=safe_members)
 
     def fetch(self, owner: str, repo: str, ref: Optional[str] = "main") -> Path:
         # 1) unique workspace under /tmp
