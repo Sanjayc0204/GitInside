@@ -30,6 +30,11 @@ def parse_args():
         help="Git reference (branch, tag, or commit hash), defaults to 'main'"
     )
     parser.add_argument(
+        "--profile",
+        default="default",
+        help="Profile name from gitinside-config.yaml/.gitinsiderc.yaml (default: default)",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path.cwd() / ".gitinside" / "results",
@@ -50,6 +55,7 @@ def main() -> int:
             repo=args.repo,
             token=args.token,
             ref=args.ref,
+            profile=args.profile,
         )
         
         print("\nTest execution completed successfully!")
