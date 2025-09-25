@@ -104,7 +104,7 @@ class Runner:
                 logs.append(line)
             
             # Join logs with newlines for the return value
-            logs_text = "\n [SHIM]".join(logs)
+            logs_text = "\n [SHIM] ".join(logs)
             
             # Print all logs at once to avoid interleaving
             if logs_text:
