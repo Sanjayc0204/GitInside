@@ -33,6 +33,7 @@ def render_dockerfile(plan: Plan, root: Path):
     
     # Construct path to shim (assuming it's in a 'shim' directory next to this file)
     shim_source = current_dir / "templates" / "python" / "shim" / "shim.py"
+    generated_shim = root / "shim.py"
     
     tmp = pick_template(plan)
     print("tmp = ", tmp)
@@ -40,13 +41,23 @@ def render_dockerfile(plan: Plan, root: Path):
         case "python-pyproject-pytest":
             docker_contents = pyproject_pytest_render(plan)
             write_dockerfile(docker_contents, root)
-            copy_file(shim_source, root)
+            # Prefer a previously generated shim; fall back to template
+            if generated_shim.exists():
+                print(f"Using generated shim at {generated_shim}")
+            else:
+                print("No generated shim found; copying template shim")
+                copy_file(shim_source, root)
             for path in root.iterdir():
                 print(path, "\n")
         case "python-requirements-pytest":
             docker_contents = requirements_pytest_render(plan)
             write_dockerfile(docker_contents, root)
-            copy_file(shim_source, root)
+            # Prefer a previously generated shim; fall back to template
+            if generated_shim.exists():
+                print(f"Using generated shim at {generated_shim}")
+            else:
+                print("No generated shim found; copying template shim")
+                copy_file(shim_source, root)
             for path in root.iterdir():
                 print(path, "\n")
 
