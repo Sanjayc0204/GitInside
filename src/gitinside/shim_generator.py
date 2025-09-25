@@ -60,7 +60,7 @@ def generate_shim_script(config: Dict[str, Any], profile: str = "default") -> st
         '    # Set up working directory',
         '    cmd_cwd = Path(cwd).resolve() if cwd else Path.cwd()',
         '    cmd_cwd.mkdir(parents=True, exist_ok=True)\n',
-        '    print(f"Executing: {" ".join(cmd)} in {cmd_cwd}")\n',
+        '    print("Executing: {} in {}".format(" ".join(cmd), cmd_cwd))\n',
         '    try:',
         '        process = subprocess.Popen(',
         '            cmd,',
@@ -86,26 +86,27 @@ def generate_shim_script(config: Dict[str, Any], profile: str = "default") -> st
         '        print(f"Error executing command: {e}", file=sys.stderr)',
         '        return 1\n',
         'def collect_artifacts(artifacts: List[Dict[str, str]]) -> None:',
-        '    """Collect artifacts after execution."""',
-        '    results_dir = Path("/results")'
+        '    """Collect artifacts after execution."""\n',
+        '    results_dir = Path("/results")\n',
         '    results_dir.mkdir(exist_ok=True, parents=True)\n',
         '    for artifact in artifacts:',
         '        src_pattern = artifact["path"]',
         '        target_dir = Path(artifact["target"])',
         '        target_dir.mkdir(exist_ok=True, parents=True)\n',
         '        # Expand glob patterns',
-        '        for src_path in glob.glob(src_pattern, recursive=True):',
-        '            src = Path(src_path)'
-            '    if not src.exists():'
-            '        print(f"Warning: Artifact not found: {src}")'
-            '        continue\n',
-        '            target_path = target_dir / src.name'
-            '    if src.is_file():'
-            '        shutil.copy2(src, target_path)'
-            '        print(f"Copied artifact: {src} -> {target_path}")'
-            '    elif src.is_dir():'
-            '        shutil.copytree(src, target_path, dirs_exist_ok=True)'
-            '        print(f"Copied directory: {src} -> {target_path}")\n',
+        '        # Expand glob patterns\n',
+        '        for src_path in glob.glob(src_pattern, recursive=True):\n',
+        '            src = Path(src_path)\n',
+        '            if not src.exists():\n',
+        '                print(f"Warning: Artifact not found: {src}")\n',
+        '                continue\n',
+        '            target_path = target_dir / src.name\n',
+        '            if src.is_file():\n',
+        '                shutil.copy2(src, target_path)\n',
+        '                print(f"Copied artifact: {src} -> {target_path}")\n',
+        '            elif src.is_dir():\n',
+        '                shutil.copytree(src, target_path, dirs_exist_ok=True)\n',
+        '                print(f"Copied directory: {src} -> {target_path}")\n',
         'def main() -> int:',
         '    try:',
         '        # Create results directory',
