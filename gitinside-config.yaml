@@ -7,14 +7,16 @@ profiles:
     environment:
       PYTHONPATH: "/app/src"
     pre_run:
-      - command: "find"
-        args: [".", "-name", ".venv", "-type", "d", "-exec", "rm", "-rf", "{}", "+"]
+      - command: "sh"
+        args: ["-c", "find . -name '.venv' -type d -exec rm -rf {} +"]
+        cwd: "/app"
+      - command: "sh"
+        args: ["-c", "rm -rf /app/data/*"]
+        cwd: "/app"
     execute:
       command: "python"
       args: ["scraper.py"]
       cwd: "src"
     artifacts:
-      - path: "/app/src/*/data/*.json"
-        target: "/results"
-      - path: "*.log"
+      - path: "/app/data/**/*"  # For any data in /app/data
         target: "/results"
