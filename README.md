@@ -7,6 +7,10 @@ GitInside is a powerful tool for running tests in isolated Docker containers by 
 
 ## 🚀 Current Features (v0.1)
 
+- **Repository Access**
+  - Clone and test repositories using GitHub URL or owner/repo combination
+  - Supports various URL formats including full GitHub URLs and short owner/repo format
+
 - **Automatic Configuration Detection**
   - Detects and parses configuration files like `requirements.txt`, `pyproject.toml`, etc.
   - Supports Python projects with pytest
@@ -45,16 +49,34 @@ pip install -e .
 
 ## 🚀 Usage
 
-Run tests for a GitHub repository:
+Run tests for a GitHub repository using either the repository URL or owner/repo combination:
 
+### Using GitHub URL
+```bash
+python -m gitinside.main --url https://github.com/owner/repository
+```
+
+### Using owner/repo
 ```bash
 python -m gitinside.main --owner <owner> --repo <repository>
 ```
 
-Example:
+Examples:
 ```bash
+# Using full GitHub URL
+python -m gitinside.main --url https://github.com/Sanjayc0204/gitinside-happy-test
+
+# Using owner/repo
 python -m gitinside.main --owner Sanjayc0204 --repo gitinside-happy-test
+
+# Using short URL format
+python -m gitinside.main --url Sanjayc0204/gitinside-happy-test
 ```
+
+### URL Formats Supported
+- Full URL: `https://github.com/owner/repo`
+- Short URL: `owner/repo`
+- URLs with `.git` suffix are also supported
 
 ## 🚧 Roadmap
 
