@@ -6,17 +6,26 @@ profiles:
       template: "python/Dockerfile.chromedriver"
     environment:
       PYTHONPATH: "/app/src"
+      DEEPSEEK_API_KEY: "sk-a7f42564324a433b836f39b479e4dfa8"
     pre_run:
       - command: "sh"
-        args: ["-c", "find . -name '.venv' -type d -exec rm -rf {} +"]
+        args: ["-c", "find . -name '.venv' -type d -exec rm -rf {} + && rm -rf data"]
         cwd: "/app"
       - command: "sh"
-        args: ["-c", "rm -rf /app/data/*"]
+        args: ["-c", "mkdir -p /app/data && chmod -R 777 /app/data"]
         cwd: "/app"
     execute:
-      command: "python"
-      args: ["scraper.py"]
-      cwd: "src"
+      command: "python main.py"
+      cwd: "/app"
     artifacts:
-      - path: "/app/data/**/*"  # For any data in /app/data
+      # Collect from /app/data/ (absolute path)
+      - path: "/app/data/*/*"
+        target: "/results"
+      # Collect from /app/src/data/ (where the scraper actually writes)
+      - path: 
+          - "/app/src/data/*.json"
+          - "/app/src/data/raw/*.json"
+        target: "/results"
+      # Collect the log file
+      - path: "/app/scraper_output.log"
         target: "/results"
